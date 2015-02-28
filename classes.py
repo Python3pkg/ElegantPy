@@ -1,8 +1,9 @@
 from sdds import SDDS
 import numpy as _np
 import ipdb
+import os
 
-__all__ = ['Final','Bunch']
+__all__ = ['Final','Bunch','Matrix','ElegantSim']
 
 # ======================================
 # Creates a property and removes
@@ -86,7 +87,10 @@ class SDDSIntermediate(object):
     __metaclass__ = SDDSMeta
     def __init__(self,filename):
         self._SDDS = SDDS(0)
-        self._SDDS.load(filename)
+        if os.path.exists(filename):
+            self._SDDS.load(filename)
+        else:
+            raise IOError('File not found: {}'.format(filename))
 
     @property
     def _SDDS_param(self):
@@ -128,7 +132,6 @@ class Final(SDDSIntermediate):
                     Rstr = 'R{}{}'.format(istr,jstr)
                     self._R[i,j] = _np.float64(self._SDDS_param.pop(Rstr)[0])
         return self._R
-    #  R = property(_get_R)
 
     @property
     def sigma(self):
@@ -156,3 +159,45 @@ class Bunch(SDDSIntermediate):
             pavg = _np.mean(self.p)
             self._delta = (self.p/pavg-_np.float_(1))
             return self._delta
+
+class Matrix(SDDSIntermediate):
+    @property
+    def T(self):
+        """Get the delta coordinates"""
+        try:
+            return self._T
+        except:
+            # ======================================
+            # Get the R matrix from the file
+            # ======================================
+            self._T = _np.zeros((6,6,6))
+            for i in range(0,6):
+                istr = '{}'.format(i+1)
+                for j in range(0,i+1):
+                    jstr = '{}'.format(j+1)
+                    for k in range(0,j+1):
+                        kstr = '{}'.format(k+1)
+                        Tstr = 'T{}{}{}'.format(istr,jstr,kstr)
+                        self._T[i,j,k] = _np.float64(self._SDDS_col.pop(Tstr))[0,-1]
+                        self._T[i,k,j] = self._T[i,j,k]
+        return self._T
+
+class ElegantSim(object):
+    def __init__(self,path):
+        # Get absolute path
+        fullpath = os.path.abspath(path)
+
+        # Get root, ext, fulldir
+        filename = os.path.basename(fullpath)
+        root,ext = os.path.splitext(filename)
+        fulldir  = os.path.dirname(fullpath)
+
+        # Get filenames of files to load
+        final_file = os.path.join(fulldir,'{}.fin'.format(root))
+        bunch_file = os.path.join(fulldir,'{}.out'.format(root))
+        mat_file   = os.path.join(fulldir,'{}.mat'.format(root))
+
+        # Load files
+        self.Bunch = Bunch(bunch_file)
+        self.Matrix = Matrix(mat_file)
+        self.Final = Final(final_file)
