@@ -1,4 +1,4 @@
-from sdds import SDDS
+from .sdds import SDDS
 import numpy as _np
 import ipdb
 import os
@@ -25,7 +25,7 @@ def property_from_dict(name,simple_docstr=None,datfield='_SDDS_param'):
             val = dct.pop(name)[0]
             setattr(self,private_name,val)
 
-        if type(val) == long:
+        if type(val) == int:
             out = _np.int(val)
         elif type(val) == float:
             out = _np.float(val)
@@ -83,8 +83,7 @@ class SDDSMeta(type):
 
         return super(SDDSMeta,cls).__new__(cls,name,parents,dct)
 
-class SDDSIntermediate(object):
-    __metaclass__ = SDDSMeta
+class SDDSIntermediate(object, metaclass=SDDSMeta):
     def __init__(self,filename):
         self._SDDS = SDDS(0)
         if os.path.exists(filename):
@@ -97,7 +96,7 @@ class SDDSIntermediate(object):
         try:
             return self._SDDS_param_dat
         except:
-            self._SDDS_param_dat = dict(zip(self._SDDS.parameterName,self._SDDS.parameterData))
+            self._SDDS_param_dat = dict(list(zip(self._SDDS.parameterName,self._SDDS.parameterData)))
             return self._SDDS_param_dat
 
     @property
@@ -105,7 +104,7 @@ class SDDSIntermediate(object):
         try:
             return self._SDDS_column_dat
         except:
-            self._SDDS_column_dat = dict(zip(self._SDDS.columnName,self._SDDS.columnData))
+            self._SDDS_column_dat = dict(list(zip(self._SDDS.columnName,self._SDDS.columnData)))
             return self._SDDS_column_dat
 
 # ======================================
